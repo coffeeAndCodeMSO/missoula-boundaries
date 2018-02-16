@@ -68,3 +68,33 @@ h1 {
     stroke-opacity: 0.9;
     stroke-width: 3px;
 }
+
+/* Buttons */
+
+button {
+    margin: 5px;
+    color: #292b2c;
+    background-color: #fff;
+    line-height: 1.25;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    border: 1px solid #ccc;
+    padding: .5rem 1rem;
+    font-size: 1rem;
+    border-radius: .25rem;
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #eee;
+    transition: background-color 200ms ease ;
+}
+
+button:focus {
+    outline: 0;
+    border-width: 1px;
+    border-color: #5cb3fd;
+}

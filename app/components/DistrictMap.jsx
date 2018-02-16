@@ -19,7 +19,7 @@ NOTES/POSSIBLE GOTCHAS:
 */
 
 import React from 'react';
-import ReactMapGL, { SVGOverlay } from 'react-map-gl';
+import ReactMapGL, { SVGOverlay, FlyToInterpolator } from 'react-map-gl';
 import turfBbox from '@turf/bbox';
 import WebMercatorViewport from 'viewport-mercator-project';
 
@@ -51,10 +51,11 @@ export default class DistrictMap extends React.Component {
 
     // This appears to fire whenever new props are supplied to DistrictMap.jsx
     // componentWillReceiveProps() seems cleaner, but doesn't work
-    this._setBounds(this.props.districtFeature);
+    // this._setBounds(this.props.districtFeature);
   }
 
   _setSize(){
+    // adjusts map display width to match container width
     let { clientHeight, clientWidth } = this.refs['map-container']
     const viewport = Object.assign(this.state.viewport, {
       width: clientWidth,
@@ -74,22 +75,18 @@ export default class DistrictMap extends React.Component {
     });
 
     // TODO: Figure out how to avoid redundancy with _setSize
+    // BUG: calling this in componentDidMount sets to pre _setSize() viewport shape
 
     const bbox = turfBbox(shape);
     const bounds = vpHelper.fitBounds(
       [[bbox[0], bbox[1]],[bbox[2],bbox[3]]],
-      {padding: 75}
+      {padding: 50}
       );
-    // TODO: Figure out why this padding value has to be set so high to avoid clipping
 
-    const viewport = Object.assign(this.state.viewport, {
-        latitude: bounds.latitude,
-        longitude: bounds.longitude,
-        zoom: bounds.zoom,
-      })
-
-    this.setState({
-      viewport: viewport
+    this._setViewport({
+      zoom: bounds.zoom,
+      latitude: bounds.latitude,
+      longitude: bounds.longitude,
     })
   }
 
@@ -125,7 +122,6 @@ export default class DistrictMap extends React.Component {
   }
 
   render(){
-
     const labels = (
       <div className='map-label-container'>
         <div className='label-district-name'>
@@ -155,6 +151,8 @@ export default class DistrictMap extends React.Component {
     return (
       <div className='map-container' ref='map-container'>
         {labels}
+        <button onClick={() => this.zoomToStreetLevel()}>Street level</button>
+        <button onClick={() => this.zoomToFit()}>Fit</button>
         <ReactMapGL
           {...this.state.viewport}
           mapboxApiAccessToken={process.env.MAPBOX_API_TOKEN}
@@ -164,8 +162,33 @@ export default class DistrictMap extends React.Component {
           {focusDistrict}
           {markerOverlay}
         </ReactMapGL>
-
       </div>
     );
+  }
+
+  _setViewport({longitude, latitude, zoom}){
+    const viewport = Object.assign(this.state.viewport,
+      {
+        longitude: longitude,
+        latitude: latitude,
+        zoom: zoom,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionDuration: 400,
+      })
+    this.setState({ viewport })
+  }
+
+  /* Interaction handlers */
+
+  zoomToStreetLevel(){
+    this._setViewport({
+      zoom: 14,
+      latitude: this.props.lnglat[1],
+      longitude: this.props.lnglat[0],
+    })
+  }
+
+  zoomToFit(){
+    this._setBounds(this.props.districtFeature);
   }
 }

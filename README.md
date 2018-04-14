@@ -35,6 +35,7 @@ Needs a [Mapbox public token](https://www.mapbox.com/help/how-access-tokens-work
 ## TODOS:
 
 - Add more layers (school districts, municipalities)
+    - stitch together school districts (consolidated districts --> elem, hs layers, subset of elem layers)
 - Figure out what initial app state should look like
 - Look at nested layer display in dropdown
 - Try showing non-selected boundaries on map (Turns out this is memory intensive w/out optimization work - maybe try a canvas layer instead of an SVG one)

@@ -37,21 +37,55 @@ export default class DistrictMap extends React.Component {
       viewport: {
         latitude: props.lnglat[1],
         longitude: props.lnglat[0],
-        zoom: 14,
+        zoom: 8,
         width: 400,
         height: 300,
       },
+      style: defaultMapStyle,
     }
-    this.mapStyle = defaultMapStyle;
     this._onViewportChange = this._onViewportChange.bind(this);
   }
 
+  addOverlayStyle(){
+    // Add overlay by tweaking mapbox style
+    // See https://github.com/uber/react-map-gl/blob/master/docs/get-started/adding-custom-data.md
+
+    const style = JSON.parse(JSON.stringify(defaultMapStyle)); // deep clone
+
+    style.sources['districts'] = {
+      type: 'geojson',
+      data: this.props.districts,
+    }
+
+    style.layers.push({
+      id: 'district-lines',
+      source: 'districts',
+      type: 'line',
+      paint: {
+        'line-color': '#ff7f00',
+        'line-width': 1,
+        'line-opacity': 0.6,
+      }
+    });
+
+    this.setState({
+      style: style
+    });
+  }
+
+
+
   componentDidMount(){
+    window.addEventListener('resize', this._setSize.bind(this));
     this._setSize();
 
-    // This appears to fire whenever new props are supplied to DistrictMap.jsx
-    // componentWillReceiveProps() seems cleaner, but doesn't work
-    // this._setBounds(this.props.districtFeature);
+    this.addOverlayStyle();
+
+  }
+
+  componentWillUnmount(){
+    console.log('unmounting map');
+    window.removeEventListener('resize', this._setSize.bind(this));
   }
 
   _setSize(){
@@ -90,36 +124,25 @@ export default class DistrictMap extends React.Component {
     })
   }
 
+  _setViewport({longitude, latitude, zoom}){
+    const viewport = Object.assign(this.state.viewport,
+      {
+        longitude: longitude,
+        latitude: latitude,
+        zoom: zoom,
+        transitionInterpolator: new FlyToInterpolator(),
+        transitionDuration: 400,
+      })
+    this.setState({ viewport })
+  }
+
   _onViewportChange(newViewport){
     this.setState({
       viewport: newViewport
     });
   }
 
-  buildShape(opt, feature, className){
-    const coordinates = feature.geometry.coordinates;
-    const pathCoords = coordinates[0].map(coord => opt.project(coord))
-    const d = 'M' + pathCoords.join(" ")
-    return (<g key={feature.properties.id}><path className={className} d={d} /></g>);
-  }
-
-  buildShapes(opt, features, className){
-    const shapes = features.map(feature => this.buildShape(opt, feature, className));
-    return (<g>{shapes}</g>)
-  }
-
-  buildMarker(opt, lngLat){
-    const coord = this.props.lnglat;
-    const p = opt.project([coord[0], coord[1]]);
-    return (
-      <g transform={'translate(' + p[0] + ',' + p[1] + ')'}>
-        <circle
-          className='point-marker'
-          r={8}
-        />
-      </g>
-    );
-  }
+  /* Render methods */
 
   render(){
     const labels = (
@@ -152,11 +175,11 @@ export default class DistrictMap extends React.Component {
       <div className='map-container' ref='map-container'>
         {labels}
         <button onClick={() => this.zoomToStreetLevel()}>Street level</button>
-        <button onClick={() => this.zoomToFit()}>Fit</button>
+        <button onClick={() => this.zoomToFit()}>Fit district</button>
         <ReactMapGL
           {...this.state.viewport}
           mapboxApiAccessToken={process.env.MAPBOX_API_TOKEN}
-          mapStyle={this.mapStyle}
+          mapStyle={this.state.style}
           onViewportChange={this._onViewportChange}
         >
           {focusDistrict}
@@ -166,16 +189,31 @@ export default class DistrictMap extends React.Component {
     );
   }
 
-  _setViewport({longitude, latitude, zoom}){
-    const viewport = Object.assign(this.state.viewport,
-      {
-        longitude: longitude,
-        latitude: latitude,
-        zoom: zoom,
-        transitionInterpolator: new FlyToInterpolator(),
-        transitionDuration: 400,
-      })
-    this.setState({ viewport })
+
+
+  buildShape(opt, feature, className){
+    const coordinates = feature.geometry.coordinates;
+    const pathCoords = coordinates[0].map(coord => opt.project(coord))
+    const d = 'M' + pathCoords.join(" ")
+    return (<g key={feature.properties.id}><path className={className} d={d} /></g>);
+  }
+
+  buildShapes(opt, features, className){
+    const shapes = features.map(feature => this.buildShape(opt, feature, className));
+    return (<g>{shapes}</g>)
+  }
+
+  buildMarker(opt, lngLat){
+    const coord = this.props.lnglat;
+    const p = opt.project([coord[0], coord[1]]);
+    return (
+      <g transform={'translate(' + p[0] + ',' + p[1] + ')'}>
+        <circle
+          className='point-marker'
+          r={8}
+        />
+      </g>
+    );
   }
 
   /* Interaction handlers */
